@@ -46,7 +46,7 @@ class Client:
 
     async def send_message(self, message: Message) -> MessageResponse:
         """A simple function that sends a message object to Eludris."""
-        async with self.session.post(self.rest_url, json=message.to_dict()) as response:
+        async with self.session.post(self.rest_url+"messages/", json=message.to_dict()) as response:
             return await response.json()
 
     async def send(self, content: str) -> MessageResponse:
