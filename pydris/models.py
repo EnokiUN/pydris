@@ -1,3 +1,4 @@
+# pyright: strict
 from __future__ import annotations
 import typing
 
@@ -6,6 +7,7 @@ class MessagePayload(typing.TypedDict):
     content: str
 
 class MessageResponse(typing.TypedDict):
+    author: str
     content: str
 
 class Message:
