@@ -26,7 +26,7 @@ class Message:
         self.content = content
 
     def __repr__(self) -> str:
-        return f"<Message author={self.author}>"
+        return f"<Message author={self.author!r}>"
 
     def __str__(self) -> str:
         return f"[{self.author}]: {self.content}"
