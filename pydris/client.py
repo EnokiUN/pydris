@@ -1,3 +1,4 @@
+# pyright: strict
 from __future__ import annotations
 from aiohttp import ClientSession, ClientWebSocketResponse
 from asyncio import sleep, create_task
@@ -5,6 +6,7 @@ from json import loads
 import typing
 
 from .models import MessagePayload, Message, MessageResponse
+from .typed_ws_msg import BaseTypedWSMessage
 
 REST_URL = "https://eludris.tooty.xyz/"
 GATEWAY_URL = "wss://eludris.tooty.xyz/ws/"
@@ -31,11 +33,14 @@ class Client:
 
     async def start(self) -> None:
         """A function that initialises the handler's connection to the Eludris gateway."""
-        self.ws = await self.session.ws_connect(self.gateway_url)
+        # Here we face the minor issue of aiohttp websockets being not fully typed :/
+        self.ws = await self.session.ws_connect(self.gateway_url) # type: ignore
         create_task(self.handle_heartbeat())
         async for payload in self.ws:
-            data: MessagePayload = loads(payload.data)
-            create_task(self.handle_message(data))
+            wsmsg: BaseTypedWSMessage[typing.Any] = BaseTypedWSMessage.convert_from_untyped(payload)
+            data = typing.cast(str, wsmsg.data)
+            msg: MessagePayload = loads(data)
+            create_task(self.handle_message(msg))
 
     async def handle_message(self, message: MessagePayload) -> None:
         """A function that handles messages getting received."""
