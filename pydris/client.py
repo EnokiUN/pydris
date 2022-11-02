@@ -55,7 +55,7 @@ class Client:
         """A function that handles messages getting received."""
         msg = Message.from_dict(message)
         for pred, listener in self.listeners:
-            if pred(msg) is True:
+            if pred(msg):
                 await listener(msg)
 
     async def send_message(self, message: Message) -> MessageResponse:
@@ -75,6 +75,7 @@ class Client:
         return inner
 
     def command(self, name: str, aliases: typing.Optional[list[str]] = None, description: typing.Optional[str] = None):
+        """A simple decorator that adds a command to the bot."""
         def inner(func: typing.Callable[..., typing.Coroutine[typing.Any, typing.Any, typing.Any]]):
             prefix: str
             if self.prefix is None:
@@ -86,6 +87,6 @@ class Client:
                 if i in self.commands:
                     raise ValueError("A command with this name already exists")
                 self.commands[i] = cmd
-                self.listeners.append((lambda m: m.content.startswith(prefix) and m.content[len(prefix):].split()[0] == i, cmd.invoke))
+            self.listeners.append((lambda m: m.content.startswith(prefix) and m.content[len(prefix):].split()[0] in cmd.names, lambda m: cmd.invoke(m, prefix)))
             return cmd
         return inner
