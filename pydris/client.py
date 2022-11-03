@@ -74,19 +74,23 @@ class Client:
             return listener
         return inner
 
+    def add_command(self, command: Command):
+        """Adds a command to the bot, consider using the @command decorator instead."""
+        prefix: str
+        if self.prefix is None:
+            raise ValueError("Prefix can't be None")
+        else:
+            prefix = self.prefix
+        for i in command.names:
+            if i in self.commands:
+                raise ValueError("A command with this name already exists")
+            self.commands[i] = command
+        self.listeners.append((lambda m: m.content.startswith(prefix) and m.content[len(prefix):].split()[0] in command.names, lambda m: command.invoke(m, prefix)))
+
     def command(self, name: typing.Optional[str] = None, aliases: typing.Optional[list[str]] = None, description: typing.Optional[str] = None):
         """A simple decorator that adds a command to the bot."""
         def inner(func: typing.Callable[..., typing.Coroutine[typing.Any, typing.Any, typing.Any]]):
-            prefix: str
-            if self.prefix is None:
-                raise ValueError("Prefix can't be None")
-            else:
-                prefix = self.prefix
-            cmd = Command(func, name, aliases, description)
-            for i in cmd.names:
-                if i in self.commands:
-                    raise ValueError("A command with this name already exists")
-                self.commands[i] = cmd
-            self.listeners.append((lambda m: m.content.startswith(prefix) and m.content[len(prefix):].split()[0] in cmd.names, lambda m: cmd.invoke(m, prefix)))
-            return cmd
+            command = Command(func, name, aliases, description)
+            self.add_command(command)
+            return command
         return inner
