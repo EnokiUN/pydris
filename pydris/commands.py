@@ -2,7 +2,9 @@
 from __future__ import annotations
 import typing
 
+
 if typing.TYPE_CHECKING:
+    from .client import Client
     from .models import Message
 
 PT = typing.TypeVar("PT")
@@ -143,6 +145,16 @@ class Command:
                 await self.handler(msg, e)
             else:
                 raise
+
+    async def invoke_with_client(self, client: Client, msg: Message, prefix: str):
+        try:
+            await self.func(client, msg, **self.get_args(msg, prefix))
+        except Exception as e:
+            if self.handler is not None:
+                await self.handler(msg, e)
+            else:
+                raise
+
 
 def param(name: str, parser: Parser[typing.Any], required: typing.Optional[bool] = None, default: typing.Optional[typing.Any] = None, multiple: bool = False, short: typing.Optional[str] = None, flag: typing.Optional[bool] = None):
     def inner(cmd: Command):
