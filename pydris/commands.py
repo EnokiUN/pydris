@@ -26,10 +26,10 @@ class Param(typing.Generic[PT]):
         if flag is False and short is not None:
             raise ValueError("Parameters with short names must be glags")
 
-    async def parse(self, args: list[str]) -> PT | list[PT]:
+    def parse(self, args: list[str]) -> PT | list[PT]:
         parsed: list[list[PT]] = []
         for i in args:
-            parsed.append(await self.parser.parse(i))
+            parsed.append(self.parser.parse(i))
         matches = [i for j in parsed for i in j]
         if len(matches) == 0:
             if self.required:
@@ -45,11 +45,11 @@ class Param(typing.Generic[PT]):
             return matches[-1]
 
 class Parser(typing.Protocol[PT]):
-    async def parse(self, arg: str) -> list[PT]: ...
+    def parse(self, arg: str) -> list[PT]: ...
 
 class StringParser:
     """A string parser, just passes forward anything it gets."""
-    async def parse(self, arg: str) -> list[str]:
+    def parse(self, arg: str) -> list[str]:
         return [arg]
 
 class NumberParser:
@@ -59,7 +59,7 @@ class NumberParser:
         self.decimal = decimal
         self.signed = signed
 
-    async def parse(self, arg: str) -> list[float | int]:
+    def parse(self, arg: str) -> list[float | int]:
         if self.decimal:
             found = float(arg)
         else:
@@ -69,7 +69,7 @@ class NumberParser:
         return [found]
 
 class BoolParser:
-    async def parse(self, arg: str) -> list[bool]:
+    def parse(self, arg: str) -> list[bool]:
         if arg.lower() in ["yes", "y", "true", "t", "1", ""]:
             found = True
         elif arg.lower() in ["no", "n", "false", "f", "0"]:
@@ -101,40 +101,43 @@ class Command:
         self.handler = func
         return func
 
-    async def invoke(self, msg: Message, prefix: str):
-        try:
-            invocation = prefix + msg.content[len(prefix):].split(" ", 1)[0]
-            args, kwargs = parse_content(msg.content[len(invocation):])
-            params: list[Param[typing.Any]] = []
-            kwparams: dict[str, Param[typing.Any]] = {}
-            for arg in self.args:
-                if arg.flag:
-                    kwparams[arg.name] = arg
-                else:
-                    params.append(arg)
-            passed_args: dict[str, typing.Any] = {}
-            for (arg, param) in zip(args, params):
-                passed_args[param.name] = await param.parse([arg])
-            for param in params:
-                if passed_args.get(param.name) is None:
-                    if not param.required:
-                        passed_args[param.name] = param.default
-                    else:
-                        # raise ValueError("Not good enough")
-                        raise ValueError("Not enough args")
-            for v in kwparams.values():
-                skwarg = None
-                if (kwarg := kwargs.get(v.name)) is not None or (v.short is not None and (skwarg := kwargs.get(v.short)) is not None):
-                    parsed: list[str] = []
-                    if kwarg:
-                        parsed.extend(kwarg)
-                    if skwarg:
-                        parsed.extend(skwarg)
-                    passed_args[v.name] = await v.parse(parsed)
+    def get_args(self, msg: Message, prefix: str) -> dict[str, typing.Any]:
+        invocation = prefix + msg.content[len(prefix):].split(" ", 1)[0]
+        args, kwargs = parse_content(msg.content[len(invocation):])
+        params: list[Param[typing.Any]] = []
+        kwparams: dict[str, Param[typing.Any]] = {}
+        for arg in self.args:
+            if arg.flag:
+                kwparams[arg.name] = arg
+            else:
+                params.append(arg)
+        passed_args: dict[str, typing.Any] = {}
+        for (arg, param) in zip(args, params):
+            passed_args[param.name] = param.parse([arg])
+        for param in params:
+            if passed_args.get(param.name) is None:
+                if not param.required:
+                    passed_args[param.name] = param.default
                 else:
                     # raise ValueError("Not good enough")
                     raise ValueError("Not enough args")
-            await self.func(msg, **passed_args)
+        for v in kwparams.values():
+            skwarg = None
+            if (kwarg := kwargs.get(v.name)) is not None or (v.short is not None and (skwarg := kwargs.get(v.short)) is not None):
+                parsed: list[str] = []
+                if kwarg:
+                    parsed.extend(kwarg)
+                if skwarg:
+                    parsed.extend(skwarg)
+                passed_args[v.name] = v.parse(parsed)
+            else:
+                # raise ValueError("Not good enough")
+                raise ValueError("Not enough args")
+        return passed_args
+
+    async def invoke(self, msg: Message, prefix: str):
+        try:
+            await self.func(msg, **self.get_args(msg, prefix))
         except Exception as e:
             if self.handler is not None:
                 await self.handler(msg, e)
