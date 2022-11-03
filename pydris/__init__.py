@@ -9,4 +9,4 @@ from .models import Message, MessagePayload, MessageResponse
 from .client import Client
 from .commands import Command, Param, param, StringParser, NumberParser, BoolParser
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"

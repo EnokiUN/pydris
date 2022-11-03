@@ -74,7 +74,7 @@ class Client:
             return listener
         return inner
 
-    def command(self, name: str, aliases: typing.Optional[list[str]] = None, description: typing.Optional[str] = None):
+    def command(self, name: typing.Optional[str] = None, aliases: typing.Optional[list[str]] = None, description: typing.Optional[str] = None):
         """A simple decorator that adds a command to the bot."""
         def inner(func: typing.Callable[..., typing.Coroutine[typing.Any, typing.Any, typing.Any]]):
             prefix: str
