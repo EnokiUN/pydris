@@ -31,19 +31,21 @@ class Extension:
     def __init__(self, name: str, description: typing.Optional[str] = None):
         self.name = name
         self.description = description
-        self.commands: list[Command] = []
+        self.commands: dict[str, Command] = {}
 
     def command(self, name: typing.Optional[str] = None, aliases: typing.Optional[list[str]] = None, description: typing.Optional[str] = None):
         """A simple decorator that adds a command to the extension."""
         def inner(func: typing.Callable[..., typing.Coroutine[typing.Any, typing.Any, typing.Any]]):
             command = Command(func, name, aliases, description)
-            self.commands.append(command)
+            for i in command.names:
+                if i in self.commands:
+                    raise ValueError("A command with this name already exists")
+                self.commands[i] = command
             return command
         return inner
 
     async def invoke(self, client: Client, msg: Message, prefix: str):
         cmd = msg.content[len(prefix):].split(" ", 1)[0]
-        for i in self.commands:
-            if cmd in i.names:
-                return await i.invoke_with_client(client, msg, prefix)
+        if (command := self.commands.get(cmd)) is not None:
+            return await command.invoke_with_client(client, msg, prefix)
 

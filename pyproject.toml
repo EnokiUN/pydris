@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pydris"
-version = "0.2.2"
+version = "0.2.3"
 description = "A simple pythonic API wrapper for Eludris"
 authors = ["Enoki <enokiun@gmail.com>"]
 license = "MIT"

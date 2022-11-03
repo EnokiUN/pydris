@@ -10,4 +10,4 @@ from .client import Client
 from .commands import Command, Param, param, StringParser, NumberParser, BoolParser
 from .extensions import Extension
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"
