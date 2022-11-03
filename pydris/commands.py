@@ -29,7 +29,7 @@ class Param(typing.Generic[PT]):
     async def parse(self, args: list[str]) -> PT | list[PT]:
         parsed: list[list[PT]] = []
         for i in args:
-            parsed.append(await self.parser.parse(i, self))
+            parsed.append(await self.parser.parse(i))
         matches = [i for j in parsed for i in j]
         if len(matches) == 0:
             if self.required:
@@ -45,11 +45,11 @@ class Param(typing.Generic[PT]):
             return matches[-1]
 
 class Parser(typing.Protocol[PT]):
-    async def parse(self, arg: str, param: Param[PT]) -> list[PT]: ...
+    async def parse(self, arg: str) -> list[PT]: ...
 
 class StringParser:
     """A string parser, just passes forward anything it gets."""
-    async def parse(self, arg: str, param: Param[str]) -> list[str]:
+    async def parse(self, arg: str) -> list[str]:
         return [arg]
 
 class NumberParser:
@@ -59,7 +59,7 @@ class NumberParser:
         self.decimal = decimal
         self.signed = signed
 
-    async def parse(self, arg: str, param: Param[int | float]) -> list[float | int]:
+    async def parse(self, arg: str) -> list[float | int]:
         if self.decimal:
             found = float(arg)
         else:
@@ -69,7 +69,7 @@ class NumberParser:
         return [found]
 
 class BoolParser:
-    async def parse(self, arg: str, param: Param[bool]) -> list[bool]:
+    async def parse(self, arg: str) -> list[bool]:
         if arg.lower() in ["yes", "y", "true", "t", "1", ""]:
             found = True
         elif arg.lower() in ["no", "n", "false", "f", "0"]:
