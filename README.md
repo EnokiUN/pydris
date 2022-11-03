@@ -43,3 +43,20 @@ async def handle_errors(_: Message, err: Exception):
 
 client.run()
 ```
+
+There're also built in extensions, here's an example:
+
+```py
+# ext.py
+ext = Extension("name", "optional description") # this variable must be called ext
+
+@ext.command() # You can add params like normal
+async def foo(client: Client, msg: Message):
+    await client.send(f"You said {message.content}")
+```
+
+```py
+# main.py
+client.load("ext") # a python dotpath
+```
+

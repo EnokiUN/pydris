@@ -4,7 +4,9 @@ from aiohttp import ClientSession, ClientWebSocketResponse
 from asyncio import sleep, create_task, get_event_loop_policy
 from json import loads
 import typing
+from importlib import import_module
 
+from .extensions import Extension
 from .models import MessagePayload, Message, MessageResponse
 from .typed_ws_msg import BaseTypedWSMessage
 from .commands import Command
@@ -15,13 +17,14 @@ GATEWAY_URL = "wss://eludris.tooty.xyz/ws/"
 
 class Client:
     """A simple class that handles interfacing with the Eludris API."""
-    __slots__ = ("name", "rest_url", "gateway_url", "session", "listeners", "ws", "prefix", "commands")
+    __slots__ = ("name", "rest_url", "gateway_url", "session", "listeners", "ws", "prefix", "commands", "extensions")
     def __init__(self, name: str, rest_url: str = REST_URL, gateway_url: str = GATEWAY_URL, prefix: typing.Optional[str] = None) -> None:
         self.name = name
         self.rest_url = rest_url
         self.gateway_url = gateway_url
         self.prefix = prefix
         self.commands: dict[str, Command] = {}
+        self.extensions: list[Extension] = []
 
         self.session = ClientSession()
         self.listeners: list[tuple[typing.Callable[[Message], bool], typing.Callable[[Message], typing.Coroutine[typing.Any, typing.Any, typing.Any]]]] = []
@@ -94,3 +97,16 @@ class Client:
             self.add_command(command)
             return command
         return inner
+
+    def load(self, path: str):
+        """Loads an extension from a python dotpath."""
+        mod = import_module(path)
+        if (ext := getattr(mod, "ext", None)) is None:
+            raise ValueError("ext object not found, maybe you named it something different?")
+        prefix: str
+        if self.prefix is None:
+            raise ValueError("Prefix can't be None")
+        else:
+            prefix = self.prefix
+        self.extensions.append(ext)
+        self.listeners.append((lambda m: m.content.startswith(prefix), lambda m: ext.invoke(self, m, prefix)))
