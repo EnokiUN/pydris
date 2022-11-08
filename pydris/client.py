@@ -49,6 +49,7 @@ class Client:
             create_task(self.handle_message(msg))
 
     def run(self):
+        """Starts the client synchronously."""
         try:
             get_event_loop_policy().get_event_loop().run_until_complete(self.start())
         except KeyboardInterrupt:
